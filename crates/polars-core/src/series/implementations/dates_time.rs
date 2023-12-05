@@ -376,17 +376,37 @@ macro_rules! impl_dyn_series {
                 .unwrap()
                 .into()
             }
-            fn var_as_series(&self, _ddof: u8) -> Series {
-                Int32Chunked::full_null(self.name(), 1)
-                    .cast(self.dtype())
-                    .unwrap()
-                    .into()
+            fn var_as_series(&self, ddof: u8) -> Series {
+                match self.dtype() {
+                    DataType::Date => {
+                        (self.0.cast(&DataType::Float64).unwrap().var_as_series(ddof) * (US_IN_DAY as f64))
+                            .cast(&DataType::Duration(TimeUnit::Microseconds).to_physical()).unwrap()
+                            .into_duration(TimeUnit::Microseconds)
+                    },
+                    dt => {
+                        // For Time structure, we cast to Float in days, then re-convert
+                        let ns = NS_IN_DAY as f64;
+                        ((self.0.cast(&DataType::Float64).unwrap() / ns).var_as_series(ddof) * ns)
+                            .cast(&dt.to_physical()).unwrap()
+                            .into_duration(TimeUnit::Nanoseconds)
+                    },
+                }
             }
-            fn std_as_series(&self, _ddof: u8) -> Series {
-                Int32Chunked::full_null(self.name(), 1)
-                    .cast(self.dtype())
-                    .unwrap()
-                    .into()
+            fn std_as_series(&self, ddof: u8) -> Series {
+                match self.dtype() {
+                    DataType::Date => {
+                        (self.0.cast(&DataType::Float64).unwrap().std_as_series(ddof) * (US_IN_DAY as f64))
+                            .cast(&DataType::Duration(TimeUnit::Microseconds).to_physical()).unwrap()
+                            .into_duration(TimeUnit::Microseconds)
+                    },
+                    dt => {
+                        // For Time structure, we cast to Float in days, then re-convert
+                        let ns = NS_IN_DAY as f64;
+                        ((self.0.cast(&DataType::Float64).unwrap() / ns).std_as_series(ddof) * ns)
+                            .cast(&dt.to_physical()).unwrap()
+                            .into_duration(TimeUnit::Nanoseconds)
+                    },
+                }
             }
             fn quantile_as_series(
                 &self,

@@ -370,15 +370,29 @@ impl SeriesTrait for SeriesWrap<DatetimeChunked> {
             .cast(self.dtype())
             .unwrap()
     }
-    fn var_as_series(&self, _ddof: u8) -> Series {
-        Int32Chunked::full_null(self.name(), 1)
-            .cast(self.dtype())
-            .unwrap()
+    fn var_as_series(&self, ddof: u8) -> Series {
+        // To avoid overflow, we cast to Float in days, then re-convert
+        let tu = self.0.time_unit();
+        let tu_conv = match tu {
+            TimeUnit::Milliseconds => MS_IN_DAY,
+            TimeUnit::Microseconds => US_IN_DAY,
+            TimeUnit::Nanoseconds => NS_IN_DAY,
+        } as f64;
+        ((self.0.cast(&DataType::Float64).unwrap() / tu_conv).var_as_series(ddof) * tu_conv)
+            .cast(&self.dtype().to_physical()).unwrap()
+            .into_duration(tu)
     }
-    fn std_as_series(&self, _ddof: u8) -> Series {
-        Int32Chunked::full_null(self.name(), 1)
-            .cast(self.dtype())
-            .unwrap()
+    fn std_as_series(&self, ddof: u8) -> Series {
+        // To avoid overflow, we cast to Float in days, then re-convert
+        let tu = self.0.time_unit();
+        let tu_conv = match tu {
+            TimeUnit::Milliseconds => MS_IN_DAY,
+            TimeUnit::Microseconds => US_IN_DAY,
+            TimeUnit::Nanoseconds => NS_IN_DAY,
+        } as f64;
+        ((self.0.cast(&DataType::Float64).unwrap() / tu_conv).std_as_series(ddof) * tu_conv)
+            .cast(&self.dtype().to_physical()).unwrap()
+            .into_duration(tu)
     }
     fn quantile_as_series(
         &self,
