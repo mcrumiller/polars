@@ -408,19 +408,31 @@ impl SeriesTrait for SeriesWrap<DurationChunked> {
         self.0.min_as_series().into_duration(self.0.time_unit())
     }
     fn std_as_series(&self, ddof: u8) -> Series {
-        self.0
-            .std_as_series(ddof)
+        // To avoid overflow, we cast to Float in days, then re-convert
+        let tu = self.0.time_unit();
+        let tu_conv = match tu {
+            TimeUnit::Milliseconds => MS_IN_DAY,
+            TimeUnit::Microseconds => US_IN_DAY,
+            TimeUnit::Nanoseconds => NS_IN_DAY,
+        } as f64;
+        ((self.0.cast(&DataType::Float64).unwrap() / tu_conv).std_as_series(ddof) * tu_conv)
             .cast(&self.dtype().to_physical())
             .unwrap()
-            .into_duration(self.0.time_unit())
+            .into_duration(tu)
     }
 
     fn var_as_series(&self, ddof: u8) -> Series {
-        self.0
-            .var_as_series(ddof)
+        // To avoid overflow, we cast to Float in days, then re-convert
+        let tu = self.0.time_unit();
+        let tu_conv = match tu {
+            TimeUnit::Milliseconds => MS_IN_DAY,
+            TimeUnit::Microseconds => US_IN_DAY,
+            TimeUnit::Nanoseconds => NS_IN_DAY,
+        } as f64;
+        ((self.0.cast(&DataType::Float64).unwrap() / tu_conv).var_as_series(ddof) * tu_conv)
             .cast(&self.dtype().to_physical())
             .unwrap()
-            .into_duration(self.0.time_unit())
+            .into_duration(tu)
     }
     fn median_as_series(&self) -> Series {
         self.0
@@ -436,8 +448,7 @@ impl SeriesTrait for SeriesWrap<DurationChunked> {
         interpol: QuantileInterpolOptions,
     ) -> PolarsResult<Series> {
         self.0
-            .quantile_as_series(quantile, interpol)?
-            .cast(&self.dtype().to_physical())
+            .quantile_as_series(quantile, interpol)
             .unwrap()
             .cast(self.dtype())
     }

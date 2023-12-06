@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import sys
 from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING
@@ -1222,3 +1223,124 @@ def test_groupby_median() -> None:
 
     result = df.group_by("key", maintain_order=True).median()
     assert_frame_equal(result, expected)
+
+
+def test_std() -> None:
+    s_in_day = 24 * 3600
+    ms_in_day = s_in_day * 1_000
+    us_in_day = ms_in_day * 1_000
+    ns_in_day = us_in_day * 1_000
+
+    days = [date(2023, 1, 1), date(2023, 1, 2)]
+    durs = [timedelta(days=1), timedelta(days=2)]
+    times = [time(second=1), time(second=2)]
+    s_date = pl.Series(days, dtype=pl.Date)
+    s_datetime_ms = pl.Series(days, dtype=pl.Datetime("ms"))
+    s_datetime_us = pl.Series(days, dtype=pl.Datetime("us"))
+    s_datetime_ns = pl.Series(days, dtype=pl.Datetime("ns"))
+    s_duration_ms = pl.Series(durs, dtype=pl.Duration("ms"))
+    s_duration_us = pl.Series(durs, dtype=pl.Duration("us"))
+    s_duration_ns = pl.Series(durs, dtype=pl.Duration("ns"))
+    s_time = pl.Series(times, dtype=pl.Time)
+
+
+    df = pl.DataFrame(
+        {
+            "date": s_date,
+            "datetime_ms": s_datetime_ms,
+            "datetime_us": s_datetime_us,
+            "datetime_ns": s_datetime_ns,
+            "duration_ms": s_duration_ms,
+            "duration_us": s_duration_us,
+            "duration_ns": s_duration_ns,
+            "time": s_time,
+        }
+    )
+    pl.Config.set_tbl_cols(99)
+    result = df.select(pl.all().std())
+
+    # the durations are all one day. We can't specify enough precision with ns, so we have
+    # to compute ourselves
+    std_dev = math.sqrt(0.5)
+    t_ms_precision = int(std_dev * ms_in_day)
+    t_us_precision = int(std_dev * us_in_day)
+    t_ns_precision = int(std_dev * ns_in_day)
+
+    u = 0.5/s_in_day
+    time_std = int(math.sqrt(u**2 + u**2) * ns_in_day)
+
+    expected = pl.DataFrame(
+        {
+            "date": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "datetime_ms": pl.Series([t_ms_precision], dtype=pl.Duration("ms")),
+            "datetime_us": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "datetime_ns": pl.Series([t_ns_precision], dtype=pl.Duration("ns")),
+            "duration_ms": pl.Series([t_ms_precision], dtype=pl.Duration("ms")),
+            "duration_us": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "duration_ns": pl.Series([t_ns_precision], dtype=pl.Duration("ns")),
+            "time": pl.Series([time_std], dtype=pl.Duration("ns")),
+        }
+    )
+
+    assert_frame_equal(result, expected)
+
+
+def test_var() -> None:
+    s_in_day = 24 * 3600
+    ms_in_day = s_in_day * 1_000
+    us_in_day = ms_in_day * 1_000
+    ns_in_day = us_in_day * 1_000
+
+    days = [date(2023, 1, 1), date(2023, 1, 2)]
+    durs = [timedelta(days=1), timedelta(days=2)]
+    times = [time(second=1), time(second=2)]
+    s_date = pl.Series(days, dtype=pl.Date)
+    s_datetime_ms = pl.Series(days, dtype=pl.Datetime("ms"))
+    s_datetime_us = pl.Series(days, dtype=pl.Datetime("us"))
+    s_datetime_ns = pl.Series(days, dtype=pl.Datetime("ns"))
+    s_duration_ms = pl.Series(durs, dtype=pl.Duration("ms"))
+    s_duration_us = pl.Series(durs, dtype=pl.Duration("us"))
+    s_duration_ns = pl.Series(durs, dtype=pl.Duration("ns"))
+    s_time = pl.Series(times, dtype=pl.Time)
+
+
+    df = pl.DataFrame(
+        {
+            "date": s_date,
+            "datetime_ms": s_datetime_ms,
+            "datetime_us": s_datetime_us,
+            "datetime_ns": s_datetime_ns,
+            "duration_ms": s_duration_ms,
+            "duration_us": s_duration_us,
+            "duration_ns": s_duration_ns,
+            "time": s_time,
+        }
+    )
+    pl.Config.set_tbl_cols(99)
+    result = df.select(pl.all().var())
+
+    # the durations are all one day. We can't specify enough precision with ns, so we have
+    # to compute ourselves
+    var = 0.5
+    t_ms_precision = int(var * ms_in_day)
+    t_us_precision = int(var * us_in_day)
+    t_ns_precision = int(var * ns_in_day)
+
+    u = 0.5/s_in_day
+    time_std = int((u**2 + u**2) * ns_in_day)
+
+    expected = pl.DataFrame(
+        {
+            "date": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "datetime_ms": pl.Series([t_ms_precision], dtype=pl.Duration("ms")),
+            "datetime_us": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "datetime_ns": pl.Series([t_ns_precision], dtype=pl.Duration("ns")),
+            "duration_ms": pl.Series([t_ms_precision], dtype=pl.Duration("ms")),
+            "duration_us": pl.Series([t_us_precision], dtype=pl.Duration("us")),
+            "duration_ns": pl.Series([t_ns_precision], dtype=pl.Duration("ns")),
+            "time": pl.Series([time_std], dtype=pl.Duration("ns")),
+        }
+    )
+
+    assert_frame_equal(result, expected)
+

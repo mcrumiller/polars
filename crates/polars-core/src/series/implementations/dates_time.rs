@@ -410,13 +410,12 @@ macro_rules! impl_dyn_series {
             }
             fn quantile_as_series(
                 &self,
-                _quantile: f64,
-                _interpol: QuantileInterpolOptions,
+                quantile: f64,
+                interpol: QuantileInterpolOptions,
             ) -> PolarsResult<Series> {
-                Ok(Int32Chunked::full_null(self.name(), 1)
-                    .cast(self.dtype())
-                    .unwrap()
-                    .into())
+                    self.0
+                        .quantile_as_series(quantile, interpol).unwrap()
+                        .cast(&self.dtype())
             }
 
             fn clone_inner(&self) -> Arc<dyn SeriesTrait> {
