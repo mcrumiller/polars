@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Mul};
 
 use num_traits::Bounded;
 use polars_core::prelude::*;
-use polars_core::utils::{CustomIterTools, NoNull};
+use polars_core::utils::CustomIterTools;
 use polars_core::with_match_physical_numeric_polars_type;
 
 fn det_max<T>(state: &mut T, v: Option<T>) -> Option<Option<T>>
@@ -216,15 +216,51 @@ pub fn cum_max(s: &Series, reverse: bool) -> PolarsResult<Series> {
 }
 
 pub fn cum_count(s: &Series, reverse: bool) -> PolarsResult<Series> {
+    if s.null_count() == 0 {
+        return Ok(Series::new(s.name(), 1u32..(s.len() + 1) as u32));
+    } else if s.null_count() == s.len() || s.dtype() == &DataType::Null {
+        return Ok(Series::from_vec(s.name(), vec![0u32; s.len()]));
+    }
+    let mut count = 0u32;
+    let mut out = Vec::<u32>::with_capacity(s.len());
+    macro_rules! accum_vec {
+        ($ca:expr) => {
+            if reverse {
+                for v in $ca.into_iter().rev() {
+                    if let Some(_) = v {
+                        count += 1;
+                    }
+                    out.push(count);
+                }
+            } else {
+                for v in $ca.into_iter() {
+                    if let Some(_) = v {
+                        count += 1;
+                    }
+                    out.push(count);
+                }
+            }
+        };
+    }
+    match s.dtype() {
+        DataType::Boolean => accum_vec!(s.bool()?),
+        DataType::UInt8 => accum_vec!(s.u8()?),
+        DataType::UInt16 => accum_vec!(s.u16()?),
+        DataType::UInt32 => accum_vec!(s.u32()?),
+        DataType::UInt64 => accum_vec!(s.u64()?),
+        DataType::Int8 => accum_vec!(s.i8()?),
+        DataType::Int16 => accum_vec!(s.i16()?),
+        DataType::Int32 => accum_vec!(s.i32()?),
+        DataType::Int64 => accum_vec!(s.i64()?),
+        DataType::Float32 => accum_vec!(s.f32()?),
+        DataType::Float64 => accum_vec!(s.f64()?),
+        DataType::String => accum_vec!(s.str()?),
+        _ => polars_bail!(ComputeError: "Invalid dtype"),
+    }
+
     if reverse {
-        let ca: NoNull<UInt32Chunked> = (0u32..s.len() as u32).rev().collect();
-        let mut ca = ca.into_inner();
-        ca.rename(s.name());
-        Ok(ca.into_series())
+        Ok(Series::from_vec(s.name(), out).reverse())
     } else {
-        let ca: NoNull<UInt32Chunked> = (0u32..s.len() as u32).collect();
-        let mut ca = ca.into_inner();
-        ca.rename(s.name());
-        Ok(ca.into_series())
+        Ok(Series::from_vec(s.name(), out))
     }
 }
