@@ -216,19 +216,21 @@ pub fn cum_max(s: &Series, reverse: bool) -> PolarsResult<Series> {
 }
 
 pub fn cum_count(s: &Series, reverse: bool) -> PolarsResult<Series> {
-    if s.null_count() == 0 {
+    let null_count = s.null_count();
+    let len = s.len();
+    if null_count == 0 {
         return Ok(Series::new(s.name(), 1u32..(s.len() + 1) as u32));
-    } else if s.null_count() == s.len() || s.dtype() == &DataType::Null {
-        return Ok(Series::from_vec(s.name(), vec![0u32; s.len()]));
+    } else if null_count == len || s.dtype() == &DataType::Null {
+        return Ok(Series::from_vec(s.name(), vec![0u32; len]));
     }
-    let mut count = 0u32;
-    let mut out = Vec::<u32>::with_capacity(s.len());
+    let mut count = if reverse { len as u32 } else { 0u32 };
+    let mut out = Vec::<u32>::with_capacity(len - null_count);
     macro_rules! accum_vec {
         ($ca:expr) => {
             if reverse {
                 for v in $ca.into_iter().rev() {
                     if let Some(_) = v {
-                        count += 1;
+                        count -= 1;
                     }
                     out.push(count);
                 }
@@ -258,9 +260,5 @@ pub fn cum_count(s: &Series, reverse: bool) -> PolarsResult<Series> {
         _ => polars_bail!(ComputeError: "Invalid dtype"),
     }
 
-    if reverse {
-        Ok(Series::from_vec(s.name(), out).reverse())
-    } else {
-        Ok(Series::from_vec(s.name(), out))
-    }
+    Ok(Series::from_vec(s.name(), out))
 }
