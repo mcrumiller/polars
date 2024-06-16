@@ -140,7 +140,7 @@ def test_map_groups_numpy_output_3057() -> None:
     )
 
     result = df.group_by("id", maintain_order=True).agg(
-        pl.map_groups(["y", "t"], lambda lst: np.trapz(y=lst[0], x=lst[1])).alias(
+        pl.map_groups(["y", "t"], lambda lst: np.trapezoid(y=lst[0], x=lst[1])).alias(
             "result"
         )
     )
