@@ -25,7 +25,11 @@ if TYPE_CHECKING:
 
 
 def lit(
-    value: Any, dtype: PolarsDataType | None = None, *, allow_object: bool = False
+    value: Any,
+    dtype: PolarsDataType | None = None,
+    *,
+    allow_object: bool = False,
+    strict: bool = True,
 ) -> Expr:
     """
     Return an expression representing a literal value.
@@ -41,6 +45,10 @@ def lit(
         If type is unknown use an 'object' type.
         By default, we will raise a `ValueException`
         if the type is unknown.
+    strict : bool, default True
+        Throw an error if any value does not exactly match the given or inferred data
+        type. If set to `False`, values that do not match the data type are cast to
+        that data type or, if casting is not possible, set to null instead.
 
     Notes
     -----
@@ -147,7 +155,7 @@ def lit(
         return lit(pl.Series("literal", value, dtype=dtype))
 
     elif isinstance(value, (list, tuple)):
-        return lit(pl.Series("literal", [value], dtype=dtype))
+        return lit(pl.Series("literal", [value], dtype=dtype, strict=strict))
 
     elif isinstance(value, enum.Enum):
         lit_value = value.value

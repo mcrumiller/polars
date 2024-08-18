@@ -417,6 +417,17 @@ def test_lit_dtypes() -> None:
     )
 
 
+def test_lit_strict() -> None:
+    # Default is strict = False
+    with pytest.raises(TypeError, match="unexpected value while building Series"):
+        pl.select(pl.lit([1, 1.0]))
+
+    assert_series_equal(
+        pl.select(pl.lit([1, 1.0], strict=False).alias("a")).to_series(),
+        pl.Series("a", [[1.0, 1.0]]),
+    )
+
+
 def test_lit_empty_tu() -> None:
     td = timedelta(1)
     assert pl.select(pl.lit(td, dtype=pl.Duration)).item() == td
