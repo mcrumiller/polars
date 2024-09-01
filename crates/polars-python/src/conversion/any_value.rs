@@ -446,10 +446,13 @@ pub(crate) fn py_object_to_any_value<'py>(
                         .unwrap()
                         .map(|b| b.unwrap().str().unwrap().to_string());
                     for c in ancestors_str_iter {
+                        println!("name: {}", &*c);
                         match &*c {
                             // datetime must be checked before date because
                             // Python datetime is an instance of date.
-                            "<class 'datetime.datetime'>" => return get_datetime as InitFn,
+                            "<class 'datetime.datetime'>" => {
+                                return get_datetime as InitFn;
+                            },
                             "<class 'datetime.date'>" => return get_date as InitFn,
                             _ => (),
                         }
