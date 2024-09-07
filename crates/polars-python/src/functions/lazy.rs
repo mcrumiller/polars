@@ -492,6 +492,16 @@ pub fn lit(value: &Bound<'_, PyAny>, allow_object: bool, is_scalar: bool) -> PyR
             }
         })
     }
+    // } else if allow_object {
+    //     Ok(dsl::lit(s).into())
+    // } else {
+    //     Err(PyTypeError::new_err(format!(
+    //         "cannot create expression literal for value of type {}: {}\
+    //         \n\nHint: Pass `allow_object=True` to accept any value and create a literal of type Object.",
+    //         value.get_type().qualname()?,
+    //         value.repr()?
+    //     )))
+    // }
 }
 
 #[pyfunction]
