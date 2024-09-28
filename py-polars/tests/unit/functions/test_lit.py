@@ -197,7 +197,7 @@ def test_lit_decimal_parametric(s: pl.Series) -> None:
     assert result == value
 
 
-def test_lit_datetime_subclass_w_allow_object() -> None:
+def test_lit_temporal_subclass_w_allow_object() -> None:
     class MyAmazingDate(date):
         pass
 

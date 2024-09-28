@@ -390,10 +390,7 @@ pub(crate) fn py_object_to_any_value<'py>(
             let v = &ObjectValue {
                 inner: ob.clone().unbind(),
             };
-            println!("v: {:?}", v);
-            let v_out = Ok(AnyValue::ObjectOwned(OwnedObject(v.to_boxed())));
-            println!("v_out: {:?}:", v_out);
-            v_out
+            Ok(AnyValue::ObjectOwned(OwnedObject(v.to_boxed())))
         }
         #[cfg(not(feature = "object"))]
         panic!("activate object")
@@ -426,10 +423,9 @@ pub(crate) fn py_object_to_any_value<'py>(
             Ok(get_list)
         } else if ob.is_instance_of::<PyDict>() {
             Ok(get_struct)
-        } else if ob.hasattr(intern!(py, "_s")).unwrap() {
-            Ok(get_list_from_series)
         } else {
-            let type_name = ob.get_type().qualname().unwrap();
+            let ob_type = ob.get_type();
+            let type_name = ob_type.qualname().unwrap();
             match &*type_name {
                 // Can't use pyo3::types::PyDateTime with abi3-py37 feature,
                 // so need this workaround instead of `isinstance(ob, datetime)`.
@@ -448,7 +444,7 @@ pub(crate) fn py_object_to_any_value<'py>(
                     }
 
                     // Support custom subclasses of datetime/date.
-                    let ancestors = ob.get_type().getattr(intern!(py, "__mro__")).unwrap();
+                    let ancestors = ob_type.getattr(intern!(py, "__mro__")).unwrap();
                     let ancestors_str_iter = ancestors
                         .iter()
                         .unwrap()
@@ -461,6 +457,8 @@ pub(crate) fn py_object_to_any_value<'py>(
                                 return Ok(get_datetime as InitFn);
                             },
                             "<class 'datetime.date'>" => return Ok(get_date as InitFn),
+                            "<class 'datetime.timedelta'>" => return Ok(get_timedelta as InitFn),
+                            "<class 'datetime.time'>" => return Ok(get_time as InitFn),
                             _ => (),
                         }
                     }
@@ -484,10 +482,7 @@ pub(crate) fn py_object_to_any_value<'py>(
             let convert_fn = lut
                 .entry(type_object_ptr)
                 .or_insert_with(|| conversion_function);
-            println!("ob: {:?}", ob);
-            let out = convert_fn(ob, strict);
-            println!("out: {:?}", out);
-            out
+            convert_fn(ob, strict)
         })
     })
 }
