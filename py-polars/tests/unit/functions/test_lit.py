@@ -197,21 +197,57 @@ def test_lit_decimal_parametric(s: pl.Series) -> None:
     assert result == value
 
 
-@pytest.mark.parametrize(
-    ("dt_class", "input"),
-    [
-        (date, (2024, 1, 1)),
-        (datetime, (2024, 1, 1)),
-        (timedelta, (1,)),
-        (time, (1,)),
-    ],
-)
-def test_lit_temporal_subclass_w_allow_object(
-    dt_class: type, input: tuple[int]
-) -> None:
-    class MyClass(dt_class):  # type: ignore[misc]
+# @pytest.mark.parametrize(
+#     ("dt_class", "input"),
+#     [
+#         (date, (2024, 1, 1)),
+#         (datetime, (2024, 1, 1)),
+#         (timedelta, (1,)),
+#         (time, (1,)),
+#     ],
+# )
+# def test_lit_temporal_subclass_w_allow_object(
+#     dt_class: type, input: tuple[int]
+# ) -> None:
+#     class MyClass(dt_class):  # type: ignore[misc]
+#         pass
+
+#     result = pl.select(a=pl.lit(MyClass(*input)))
+#     expected = pl.DataFrame({"a": [dt_class(*input)]})
+#     assert_frame_equal(result, expected)
+
+
+def test_lit_date_subclass() -> None:
+    class MyClass(date):
         pass
 
-    result = pl.select(a=pl.lit(MyClass(*input)))
-    expected = pl.DataFrame({"a": [dt_class(*input)]})
+    result = pl.select(a=pl.lit(MyClass(2024, 1, 1)))
+    expected = pl.DataFrame({"a": [date(2024, 1, 1)]})
+    assert_frame_equal(result, expected)
+
+
+def test_lit_datetime_subclass() -> None:
+    class MyClass(datetime):
+        pass
+
+    result = pl.select(a=pl.lit(MyClass(2024, 1, 1)))
+    expected = pl.DataFrame({"a": [datetime(2024, 1, 1)]})
+    assert_frame_equal(result, expected)
+
+
+def test_lit_time_subclass() -> None:
+    class MyClass(time):
+        pass
+
+    result = pl.select(a=pl.lit(MyClass(1)))
+    expected = pl.DataFrame({"a": [time(1)]})
+    assert_frame_equal(result, expected)
+
+
+def test_lit_timedelta_subclass() -> None:
+    class MyClass(timedelta):
+        pass
+
+    result = pl.select(a=pl.lit(MyClass(1)))
+    expected = pl.DataFrame({"a": [timedelta(1)]})
     assert_frame_equal(result, expected)
