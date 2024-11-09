@@ -243,6 +243,7 @@ pub enum PyTemporalFunction {
     BaseUtcOffset,
     DSTOffset,
     Round,
+    Replace,
     ReplaceTimeZone,
     Combine,
     DatetimeFunction,
@@ -1049,6 +1050,11 @@ pub(crate) fn into_py(py: Python<'_>, expr: &AExpr) -> PyResult<PyObject> {
                     #[cfg(feature = "timezones")]
                     TemporalFunction::DSTOffset => (PyTemporalFunction::DSTOffset,).into_py(py),
                     TemporalFunction::Round => (PyTemporalFunction::Round,).into_py(py),
+                    TemporalFunction::Replace(non_existent) => (
+                        PyTemporalFunction::Replace,
+                        Into::<&str>::into(non_existent),
+                    )
+                        .into_py(py),
                     #[cfg(feature = "timezones")]
                     TemporalFunction::ReplaceTimeZone(time_zone, non_existent) => (
                         PyTemporalFunction::ReplaceTimeZone,

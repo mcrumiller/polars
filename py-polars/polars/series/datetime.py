@@ -2041,3 +2041,17 @@ class DateTimeNameSpace:
                 0ms
         ]
         """
+
+    def replace(
+        self,
+        year: int | IntoExpr | None = None,
+        month: int | IntoExpr | None = None,
+        day: int | IntoExpr | None = None,
+        hour: int | IntoExpr | None = None,
+        minute: int | IntoExpr | None = None,
+        second: int | IntoExpr | None = None,
+        microsecond: int | IntoExpr | None = None,
+        ambiguous: Ambiguous | Expr = "raise",
+        non_existent: NonExistent = "raise",
+    ) -> Series:
+        """Replace time component for a Series of type Date or Datetime."""

@@ -13,6 +13,7 @@ mod month_start;
 #[cfg(feature = "offset_by")]
 mod offset_by;
 pub mod prelude;
+mod replace;
 mod round;
 pub mod series;
 mod truncate;
@@ -33,7 +34,9 @@ pub use month_end::*;
 pub use month_start::*;
 #[cfg(feature = "offset_by")]
 pub use offset_by::*;
+pub use replace::*;
 pub use round::*;
+pub use series::{date_series_from_parts, datetime_series_from_parts};
 pub use truncate::*;
 pub use upsample::*;
 pub use windows::duration::Duration;

@@ -1,8 +1,13 @@
 use std::ops::{Deref, Div};
 
-use arrow::temporal_conversions::{MICROSECONDS_IN_DAY, MILLISECONDS_IN_DAY, NANOSECONDS_IN_DAY};
+use arrow::temporal_conversions::{
+    EPOCH_DAYS_FROM_CE, MICROSECONDS_IN_DAY, MILLISECONDS_IN_DAY, NANOSECONDS_IN_DAY,
+};
+use polars_core::export::chrono::{Datelike, NaiveDate};
 use polars_core::prelude::arity::unary_elementwise_values;
 use polars_core::prelude::*;
+use polars_core::utils::CustomIterTools;
+use polars_ops::chunked_array::datetime::replace_time_zone;
 
 use crate::chunkedarray::*;
 
@@ -290,3 +295,88 @@ pub trait TemporalMethods: AsSeries {
 }
 
 impl<T: ?Sized + AsSeries> TemporalMethods for T {}
+
+pub fn date_series_from_parts(
+    year: &Int32Chunked,
+    month: &Int8Chunked,
+    day: &Int8Chunked,
+    name: &str,
+) -> PolarsResult<Column> {
+    let ca: Int32Chunked = year
+        .into_iter()
+        .zip(month)
+        .zip(day)
+        .map(|((y, m), d)| {
+            if let (Some(y), Some(m), Some(d)) = (y, m, d) {
+                NaiveDate::from_ymd_opt(y, m as u32, d as u32)
+                    .map(|t| t.num_days_from_ce() - EPOCH_DAYS_FROM_CE)
+            } else {
+                None
+            }
+        })
+        .collect_trusted();
+
+    let mut s = ca.into_date().into_column();
+    s.rename(name.into());
+    Ok(s)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn datetime_series_from_parts(
+    year: &Int32Chunked,
+    month: &Int8Chunked,
+    day: &Int8Chunked,
+    hour: &Int8Chunked,
+    minute: &Int8Chunked,
+    second: &Int8Chunked,
+    microsecond: &Int32Chunked,
+    ambiguous: &StringChunked,
+    time_unit: &TimeUnit,
+    time_zone: Option<&str>,
+    name: &str,
+) -> PolarsResult<Column> {
+    let ca: Int64Chunked = year
+        .into_iter()
+        .zip(month)
+        .zip(day)
+        .zip(hour)
+        .zip(minute)
+        .zip(second)
+        .zip(microsecond)
+        .map(|((((((y, m), d), h), mnt), s), us)| {
+            if let (Some(y), Some(m), Some(d), Some(h), Some(mnt), Some(s), Some(us)) =
+                (y, m, d, h, mnt, s, us)
+            {
+                NaiveDate::from_ymd_opt(y, m as u32, d as u32)
+                    .and_then(|nd| nd.and_hms_micro_opt(h as u32, mnt as u32, s as u32, us as u32))
+                    .map(|ndt| match time_unit {
+                        TimeUnit::Milliseconds => ndt.and_utc().timestamp_millis(),
+                        TimeUnit::Microseconds => ndt.and_utc().timestamp_micros(),
+                        TimeUnit::Nanoseconds => ndt.and_utc().timestamp_nanos_opt().unwrap(),
+                    })
+            } else {
+                None
+            }
+        })
+        .collect_trusted();
+
+    let ca = match time_zone {
+        #[cfg(feature = "timezones")]
+        Some(_) => {
+            let mut ca = ca.into_datetime(*time_unit, None);
+            ca = replace_time_zone(&ca, time_zone, ambiguous, NonExistent::Raise)?;
+            ca
+        },
+        _ => {
+            polars_ensure!(
+                time_zone.is_none(),
+                ComputeError: "cannot make use of the `time_zone` argument without the 'timezones' feature enabled."
+            );
+            ca.into_datetime(*time_unit, None)
+        },
+    };
+
+    let mut s = ca.into_column();
+    s.rename(name.into());
+    Ok(s)
+}
