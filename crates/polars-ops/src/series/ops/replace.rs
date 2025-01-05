@@ -16,7 +16,7 @@ pub fn replace(s: &Series, old: &Series, new: &Series) -> PolarsResult<Series> {
     let old = cast_old_to_series_dtype(old, dtype)?;
     let new = new.strict_cast(dtype)?;
 
-    if new.len() == 1 {
+    if new.len() == 1 || old.len() == 1 && new.len() == s.len() {
         replace_by_single(s, &old, &new, s)
     } else {
         replace_by_multiple(s, old, new, s)

@@ -290,3 +290,32 @@ def test_replace_single_argument_not_mapping() -> None:
         match="`new` argument is required if `old` argument is not a Mapping type",
     ):
         df.select(pl.col("a").replace("b"))
+
+
+def test_replace_with_column() -> None:
+    lf = pl.LazyFrame(
+        {
+            "old": ["a", "b", "c", "a", "d"],
+            "new": ["a2", "b2", "c2", "a3", "d2"],
+        }
+    )
+    result = lf.with_columns(
+        pl.col("old").replace("a", pl.col("new")).alias("replaced")
+    )
+    expected = pl.LazyFrame(
+        {
+            "old": ["a", "b", "c", "a", "d"],
+            "new": ["a2", "b2", "c2", "a3", "d2"],
+            "replaced": ["a2", "b", "c", "a3", "d"],
+        }
+    )
+    assert_frame_equal(result, expected)
+
+    result = lf.with_columns(pl.col("old").replace("a", ["1", "2", "3", "4", "5"]))
+    expected = pl.LazyFrame(
+        {
+            "old": ["a", "b", "c", "a", "d"],
+            "new": ["a2", "b2", "c2", "a3", "d2"],
+            "replaced": ["1", "b", "c", "4", "d"],
+        }
+    )
