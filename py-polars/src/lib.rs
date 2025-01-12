@@ -122,8 +122,6 @@ fn polars(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
         .unwrap();
     m.add_wrapped(wrap_pyfunction!(functions::int_ranges))
         .unwrap();
-    m.add_wrapped(wrap_pyfunction!(functions::linear_space))
-        .unwrap();
     m.add_wrapped(wrap_pyfunction!(functions::date_range))
         .unwrap();
     m.add_wrapped(wrap_pyfunction!(functions::date_ranges))
