@@ -300,7 +300,7 @@ def test_linear_space(
             pl.linear_space(start, end, num_samples, closed=interval).alias("ls")
         ).to_series()
     else:
-        result = pl.linear_space(
+        result = pl.linear_space(  # type: ignore[union-attr]
             start, end, num_samples, closed=interval, eager=True
         ).rename("ls")
 
