@@ -1,8 +1,19 @@
 use polars_core::prelude::*;
 use polars_core::series::IsSorted;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+use strum_macros::IntoStaticStr;
 
-use crate::series::ClosedInterval;
-use crate::series::ClosedInterval::*;
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Default, IntoStaticStr)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[strum(serialize_all = "snake_case")]
+pub enum ClosedInterval {
+    #[default]
+    Both,
+    Left,
+    Right,
+    None,
+}
 
 pub fn new_linear_space(
     start: f64,
@@ -14,21 +25,23 @@ pub fn new_linear_space(
     let mut ca = match n {
         0 => Float64Chunked::full_null(name, 0),
         1 => match closed {
-            None => Float64Chunked::from_slice(name, &[(end + start) * 0.5]),
-            Left | Both => Float64Chunked::from_slice(name, &[start]),
-            Right => Float64Chunked::from_slice(name, &[end]),
+            ClosedInterval::None => Float64Chunked::from_slice(name, &[(end + start) * 0.5]),
+            ClosedInterval::Left | ClosedInterval::Both => {
+                Float64Chunked::from_slice(name, &[start])
+            },
+            ClosedInterval::Right => Float64Chunked::from_slice(name, &[end]),
         },
         _ => Float64Chunked::from_iter_values(name, {
             let span = end - start;
 
             let (start, d, end) = match closed {
-                None => {
+                ClosedInterval::None => {
                     let d = span / (n + 1) as f64;
                     (start + d, d, end - d)
                 },
-                Left => (start, span / n as f64, end - span / n as f64),
-                Right => (start + span / n as f64, span / n as f64, end),
-                Both => (start, span / (n - 1) as f64, end),
+                ClosedInterval::Left => (start, span / n as f64, end - span / n as f64),
+                ClosedInterval::Right => (start + span / n as f64, span / n as f64, end),
+                ClosedInterval::Both => (start, span / (n - 1) as f64, end),
             };
             (0..n - 1)
                 .map(move |v| (v as f64 * d) + start)
