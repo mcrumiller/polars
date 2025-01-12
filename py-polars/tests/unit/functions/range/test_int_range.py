@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pytest
@@ -8,6 +8,9 @@ import pytest
 import polars as pl
 from polars.exceptions import ComputeError, InvalidOperationError
 from polars.testing import assert_frame_equal, assert_series_equal
+
+if TYPE_CHECKING:
+    from polars._typing import ClosedInterval
 
 
 def test_int_range() -> None:
@@ -289,7 +292,7 @@ def test_linear_space(
     start: int | float,
     end: int | float,
     num_samples: int,
-    interval: str,
+    interval: ClosedInterval,
     eager: bool,
 ) -> None:
     if eager:
