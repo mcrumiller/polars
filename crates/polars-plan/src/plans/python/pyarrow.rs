@@ -116,7 +116,7 @@ pub fn predicate_to_pa(
         },
         #[cfg(feature = "is_in")]
         AExpr::Function {
-            function: FunctionExpr::Boolean(BooleanFunction::IsIn),
+            function: FunctionExpr::Boolean(BooleanFunction::IsIn { missing }),
             input,
             ..
         } => {
@@ -125,7 +125,7 @@ pub fn predicate_to_pa(
             args.allow_literal_series = true;
             let values = predicate_to_pa(input.get(1)?.node(), expr_arena, args)?;
 
-            Some(format!("({col}).isin({values})"))
+            Some(format!("({col}).isin({values}, missing={missing})"))
         },
         #[cfg(feature = "is_between")]
         AExpr::Function {
