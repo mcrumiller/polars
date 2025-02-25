@@ -556,7 +556,6 @@ pub(crate) fn new_serializer<'a>(
                 TimeUnit::Nanosecond => time64ns_to_time,
                 _ => panic!("Invalid time unit for Time64."),
             };
-            println!("array: {:?}", array);
             time_serializer(
                 array.as_any().downcast_ref().unwrap(),
                 convert,
