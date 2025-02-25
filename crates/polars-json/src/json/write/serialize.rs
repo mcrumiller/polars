@@ -507,7 +507,7 @@ pub(crate) fn new_serializer<'a>(
                 TimeUnit::Nanosecond => timestamp_ns_to_datetime,
                 TimeUnit::Microsecond => timestamp_us_to_datetime,
                 TimeUnit::Millisecond => timestamp_ms_to_datetime,
-                TimeUnit::Second => timestamp_s_to_datetime,
+                tu => panic!("Invalid time unit '{:?}' for Datetime.", tu),
             };
             timestamp_serializer(
                 array.as_any().downcast_ref().unwrap(),
@@ -528,7 +528,7 @@ pub(crate) fn new_serializer<'a>(
                 TimeUnit::Nanosecond => duration_ns_to_duration,
                 TimeUnit::Microsecond => duration_us_to_duration,
                 TimeUnit::Millisecond => duration_ms_to_duration,
-                TimeUnit::Second => duration_s_to_duration,
+                tu => panic!("Invalid time unit '{:?}' for Duration.", tu),
             };
             duration_serializer(
                 array.as_any().downcast_ref().unwrap(),
@@ -540,7 +540,7 @@ pub(crate) fn new_serializer<'a>(
         ArrowDataType::Time64(tu) => {
             let convert = match tu {
                 TimeUnit::Nanosecond => time64ns_to_time,
-                _ => panic!("Invalid time unit for Time."),
+                tu => panic!("Invalid time unit '{:?}' for Time.", tu),
             };
             time_serializer(
                 array.as_any().downcast_ref().unwrap(),
