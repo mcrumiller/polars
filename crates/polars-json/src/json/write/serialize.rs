@@ -11,9 +11,9 @@ use arrow::offset::Offset;
 use arrow::temporal_conversions::parse_offset_tz;
 use arrow::temporal_conversions::{
     date32_to_date, duration_ms_to_duration, duration_ns_to_duration, duration_s_to_duration,
-    duration_us_to_duration, parse_offset, time32ms_to_time, time32s_to_time, time64ns_to_time,
-    time64us_to_time, timestamp_ms_to_datetime, timestamp_ns_to_datetime, timestamp_s_to_datetime,
-    timestamp_to_datetime, timestamp_us_to_datetime,
+    duration_us_to_duration, parse_offset, time64ns_to_time, timestamp_ms_to_datetime,
+    timestamp_ns_to_datetime, timestamp_s_to_datetime, timestamp_to_datetime,
+    timestamp_us_to_datetime,
 };
 use arrow::types::NativeType;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
@@ -537,24 +537,10 @@ pub(crate) fn new_serializer<'a>(
                 take,
             )
         },
-        ArrowDataType::Time32(tu) => {
-            let convert = match tu {
-                TimeUnit::Millisecond => time32ms_to_time,
-                TimeUnit::Second => time32s_to_time,
-                _ => panic!("Invalid time unit for Time32."),
-            };
-            time_serializer(
-                array.as_any().downcast_ref().unwrap(),
-                convert,
-                offset,
-                take,
-            )
-        },
         ArrowDataType::Time64(tu) => {
             let convert = match tu {
-                TimeUnit::Microsecond => time64us_to_time,
                 TimeUnit::Nanosecond => time64ns_to_time,
-                _ => panic!("Invalid time unit for Time64."),
+                _ => panic!("Invalid time unit for Time."),
             };
             time_serializer(
                 array.as_any().downcast_ref().unwrap(),
