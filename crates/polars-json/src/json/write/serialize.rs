@@ -10,10 +10,9 @@ use arrow::offset::Offset;
 #[cfg(feature = "timezones")]
 use arrow::temporal_conversions::parse_offset_tz;
 use arrow::temporal_conversions::{
-    date32_to_date, duration_ms_to_duration, duration_ns_to_duration, duration_s_to_duration,
+    date32_to_date, duration_ms_to_duration, duration_ns_to_duration,
     duration_us_to_duration, parse_offset, time64ns_to_time, timestamp_ms_to_datetime,
-    timestamp_ns_to_datetime, timestamp_s_to_datetime, timestamp_to_datetime,
-    timestamp_us_to_datetime,
+    timestamp_ns_to_datetime, timestamp_to_datetime, timestamp_us_to_datetime,
 };
 use arrow::types::NativeType;
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
