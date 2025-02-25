@@ -11,11 +11,12 @@ use arrow::offset::Offset;
 use arrow::temporal_conversions::parse_offset_tz;
 use arrow::temporal_conversions::{
     date32_to_date, duration_ms_to_duration, duration_ns_to_duration, duration_s_to_duration,
-    duration_us_to_duration, parse_offset, timestamp_ms_to_datetime, timestamp_ns_to_datetime,
-    timestamp_s_to_datetime, timestamp_to_datetime, timestamp_us_to_datetime,
+    duration_us_to_duration, parse_offset, time32ms_to_time, time32s_to_time, time64ns_to_time,
+    time64us_to_time, timestamp_ms_to_datetime, timestamp_ns_to_datetime, timestamp_s_to_datetime,
+    timestamp_to_datetime, timestamp_us_to_datetime,
 };
 use arrow::types::NativeType;
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use streaming_iterator::StreamingIterator;
 
 use super::utf8;
@@ -337,6 +338,28 @@ where
     materialize_serializer(f, array.iter(), offset, take)
 }
 
+fn time_serializer<'a, T, F>(
+    array: &'a PrimitiveArray<T>,
+    convert: F,
+    offset: usize,
+    take: usize,
+) -> Box<dyn StreamingIterator<Item = [u8]> + 'a + Send + Sync>
+where
+    T: NativeType,
+    F: Fn(T) -> NaiveTime + 'static + Send + Sync,
+{
+    let f = move |x: Option<&T>, buf: &mut Vec<u8>| {
+        if let Some(x) = x {
+            let time = convert(*x);
+            write!(buf, "\"{time}\"").unwrap();
+        } else {
+            buf.extend_from_slice(b"null")
+        }
+    };
+
+    materialize_serializer(f, array.iter(), offset, take)
+}
+
 fn timestamp_serializer<'a, F>(
     array: &'a PrimitiveArray<i64>,
     convert: F,
@@ -508,6 +531,33 @@ pub(crate) fn new_serializer<'a>(
                 TimeUnit::Second => duration_s_to_duration,
             };
             duration_serializer(
+                array.as_any().downcast_ref().unwrap(),
+                convert,
+                offset,
+                take,
+            )
+        },
+        ArrowDataType::Time32(tu) => {
+            let convert = match tu {
+                TimeUnit::Millisecond => time32ms_to_time,
+                TimeUnit::Second => time32s_to_time,
+                _ => panic!("Invalid time unit for Time32."),
+            };
+            time_serializer(
+                array.as_any().downcast_ref().unwrap(),
+                convert,
+                offset,
+                take,
+            )
+        },
+        ArrowDataType::Time64(tu) => {
+            let convert = match tu {
+                TimeUnit::Microsecond => time64us_to_time,
+                TimeUnit::Nanosecond => time64ns_to_time,
+                _ => panic!("Invalid time unit for Time64."),
+            };
+            println!("array: {:?}", array);
+            time_serializer(
                 array.as_any().downcast_ref().unwrap(),
                 convert,
                 offset,

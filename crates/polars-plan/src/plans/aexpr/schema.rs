@@ -430,6 +430,7 @@ fn get_arithmetic_field(
     agg_list: &mut bool,
 ) -> PolarsResult<Field> {
     use DataType::*;
+    println!("here");
     let left_ae = ctx.arena.get(left);
     let right_ae = ctx.arena.get(right);
 
