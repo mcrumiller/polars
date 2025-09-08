@@ -3440,8 +3440,27 @@ class Expr:
 
         Examples
         --------
-        >>> df = pl.DataFrame({"a": [1, 1, 2]})
+        >>> df = pl.DataFrame({"a": [None, 1, 2]})
         >>> df.select(pl.col("a").first())
+        shape: (1, 1)
+        ┌──────┐
+        │ a    │
+        │ ---  │
+        │ i64  │
+        ╞══════╡
+        │ null │
+        └──────┘
+        """
+        return wrap_expr(self._pyexpr.first())
+
+    def first_non_null(self) -> Expr:
+        """
+        Get the first non-null value, or null if none exist.
+
+        Examples
+        --------
+        >>> df = pl.DataFrame({"a": [None, None, 1, 2]})
+        >>> df.select(pl.col("a").first_non_null())
         shape: (1, 1)
         ┌─────┐
         │ a   │
@@ -3451,9 +3470,9 @@ class Expr:
         │ 1   │
         └─────┘
         """
-        return wrap_expr(self._pyexpr.first())
+        return wrap_expr(self._pyexpr.first_non_null())
 
-    def last(self) -> Expr:
+    def last(self, *, ignore_nulls: bool = False) -> Expr:
         """
         Get the last value.
 
@@ -3471,6 +3490,25 @@ class Expr:
         └─────┘
         """
         return wrap_expr(self._pyexpr.last())
+
+    def last_non_null(self) -> Expr:
+        """
+        Get the last non-null value, or null if none exist.
+
+        Examples
+        --------
+        >>> df = pl.DataFrame({"a": [1, 3, 2, None, None]})
+        >>> df.select(pl.col("a").last_non_null())
+        shape: (1, 1)
+        ┌─────┐
+        │ a   │
+        │ --- │
+        │ i64 │
+        ╞═════╡
+        │ 2   │
+        └─────┘
+        """
+        return wrap_expr(self._pyexpr.last_non_null())
 
     @unstable()
     def item(self, *, allow_empty: bool = False) -> Expr:

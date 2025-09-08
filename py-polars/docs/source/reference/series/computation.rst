@@ -43,14 +43,12 @@ Computation
     Series.ewm_std
     Series.ewm_var
     Series.exp
-    Series.first
     Series.hash
     Series.hist
     Series.index_of
     Series.is_between
     Series.is_close
     Series.kurtosis
-    Series.last
     Series.log
     Series.log10
     Series.log1p

@@ -9,7 +9,11 @@ Aggregation
     Series.arg_max
     Series.arg_min
     Series.count
+    Series.first
+    Series.first_non_null
     Series.implode
+    Series.last
+    Series.last_non_null
     Series.max
     Series.mean
     Series.median

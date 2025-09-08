@@ -29,7 +29,7 @@ mod from;
 #[cfg(feature = "algorithm_group_by")]
 pub mod group_by;
 pub(crate) mod horizontal;
-#[cfg(any(feature = "rows", feature = "object"))]
+#[cfg(any(feature = "rows", feature = "object", feature = "dtype-array",))]
 pub mod row;
 mod top_k;
 mod upstream_traits;

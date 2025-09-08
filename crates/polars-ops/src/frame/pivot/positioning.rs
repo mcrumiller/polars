@@ -3,6 +3,7 @@ use std::hash::Hash;
 use arrow::legacy::trusted_len::TrustedLenPush;
 use polars_core::prelude::*;
 use polars_core::series::BitRepr;
+use polars_core::utils::av_buffer::AnyValueBufferTrusted;
 use polars_utils::sync::SyncPtr;
 use polars_utils::total_ord::{ToTotalOrd, TotalEq, TotalHash};
 
@@ -82,7 +83,6 @@ pub(super) fn position_aggregates(
                     #[cfg(feature = "dtype-struct")]
                     DataType::Struct(_) => {
                         // we know we can trust this data, so we use the explicit builder
-                        use polars_core::frame::row::AnyValueBufferTrusted;
                         let mut buf = AnyValueBufferTrusted::new(&phys_type, avs.len());
                         for av in avs {
                             unsafe {

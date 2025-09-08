@@ -281,64 +281,6 @@ impl<T: PolarsDataType> ChunkedArray<T> {
         out
     }
 
-    /// Get the index of the first non null value in this [`ChunkedArray`].
-    pub fn first_non_null(&self) -> Option<usize> {
-        if self.null_count() == self.len() {
-            None
-        }
-        // We now know there is at least 1 non-null item in the array, and self.len() > 0
-        else if self.null_count() == 0 {
-            Some(0)
-        } else if self.is_sorted_any() {
-            let out = if unsafe { self.downcast_get_unchecked(0).is_null_unchecked(0) } {
-                // nulls are all at the start
-                self.null_count()
-            } else {
-                // nulls are all at the end
-                0
-            };
-
-            debug_assert!(
-                // If we are lucky this catches something.
-                unsafe { self.get_unchecked(out) }.is_some(),
-                "incorrect sorted flag"
-            );
-
-            Some(out)
-        } else {
-            first_non_null(self.iter_validities())
-        }
-    }
-
-    /// Get the index of the last non null value in this [`ChunkedArray`].
-    pub fn last_non_null(&self) -> Option<usize> {
-        if self.null_count() == self.len() {
-            None
-        }
-        // We now know there is at least 1 non-null item in the array, and self.len() > 0
-        else if self.null_count() == 0 {
-            Some(self.len() - 1)
-        } else if self.is_sorted_any() {
-            let out = if unsafe { self.downcast_get_unchecked(0).is_null_unchecked(0) } {
-                // nulls are all at the start
-                self.len() - 1
-            } else {
-                // nulls are all at the end
-                self.len() - self.null_count() - 1
-            };
-
-            debug_assert!(
-                // If we are lucky this catches something.
-                unsafe { self.get_unchecked(out) }.is_some(),
-                "incorrect sorted flag"
-            );
-
-            Some(out)
-        } else {
-            last_non_null(self.iter_validities(), self.len())
-        }
-    }
-
     pub fn drop_nulls(&self) -> Self {
         if self.null_count() == 0 {
             self.clone()
@@ -489,12 +431,7 @@ impl<T: PolarsDataType> ChunkedArray<T> {
         self.rename(name);
         self
     }
-}
 
-impl<T> ChunkedArray<T>
-where
-    T: PolarsDataType,
-{
     /// Get a single value from this [`ChunkedArray`]. If the return values is `None` this
     /// indicates a NULL value.
     ///
@@ -555,17 +492,71 @@ where
 
     #[inline]
     pub fn first(&self) -> Option<T::Physical<'_>> {
-        unsafe {
-            let arr = self.downcast_get_unchecked(0);
-            arr.get_unchecked(0)
+        unsafe { self.get_unchecked(0) }
+    }
+
+    /// Get the index of the first non null value in this [`ChunkedArray`].
+    pub fn first_non_null(&self) -> Option<usize> {
+        let null_count = self.null_count();
+        if null_count == self.len() {
+            None
+        }
+        // We now know there is at least 1 non-null item in the array, and self.len() > 0
+        else if null_count == 0 {
+            Some(0)
+        } else if self.is_sorted_any() {
+            let out = if unsafe { self.downcast_get_unchecked(0).is_null_unchecked(0) } {
+                // nulls are all at the start
+                null_count
+            } else {
+                // nulls are all at the end
+                0
+            };
+
+            debug_assert!(
+                // If we are lucky this catches something.
+                unsafe { self.get_unchecked(out) }.is_some(),
+                "incorrect sorted flag"
+            );
+
+            Some(out)
+        } else {
+            first_non_null(self.iter_validities())
         }
     }
 
     #[inline]
     pub fn last(&self) -> Option<T::Physical<'_>> {
-        unsafe {
-            let arr = self.downcast_get_unchecked(self.chunks.len().checked_sub(1)?);
-            arr.get_unchecked(arr.len().checked_sub(1)?)
+        unsafe { self.get_unchecked(self.len() - 1) }
+    }
+
+    /// Get the index of the last non null value in this [`ChunkedArray`].
+    pub fn last_non_null(&self) -> Option<usize> {
+        let null_count = self.null_count();
+        if null_count == self.len() {
+            None
+        }
+        // We now know there is at least 1 non-null item in the array, and self.len() > 0
+        else if null_count == 0 {
+            Some(self.len() - 1)
+        } else if self.is_sorted_any() {
+            let out = if unsafe { self.downcast_get_unchecked(0).is_null_unchecked(0) } {
+                // nulls are all at the start
+                self.len() - 1
+            } else {
+                // nulls are all at the end
+                self.len() - null_count - 1
+            };
+
+            debug_assert!(
+                // If we are lucky this catches something.
+                unsafe { self.get_unchecked(out) }.is_some(),
+                "incorrect sorted flag"
+            );
+
+            Some(out)
+        } else {
+            last_non_null(self.iter_validities(), self.len())
         }
     }
 
@@ -578,6 +569,45 @@ where
         }
         self.null_count = validity.unset_bits();
         self.set_fast_explode_list(false);
+    }
+
+    /// Should be used to match the chunk_id of another [`ChunkedArray`].
+    /// # Panics
+    /// It is the callers responsibility to ensure that this [`ChunkedArray`] has a single chunk.
+    pub fn match_chunks<I>(&self, chunk_id: I) -> Self
+    where
+        I: Iterator<Item = usize>,
+    {
+        debug_assert!(self.chunks.len() == 1);
+        // Takes a ChunkedArray containing a single chunk.
+        let slice = |ca: &Self| {
+            let array = &ca.chunks[0];
+
+            let mut offset = 0;
+            let chunks = chunk_id
+                .map(|len| {
+                    // SAFETY: within bounds.
+                    debug_assert!((offset + len) <= array.len());
+                    let out = unsafe { array.sliced_unchecked(offset, len) };
+                    offset += len;
+                    out
+                })
+                .collect();
+
+            debug_assert_eq!(offset, array.len());
+
+            // SAFETY: We just slice the original chunks, their type will not change.
+            unsafe {
+                Self::from_chunks_and_dtype(self.name().clone(), chunks, self.dtype().clone())
+            }
+        };
+
+        if self.chunks.len() != 1 {
+            let out = self.rechunk();
+            slice(&out)
+        } else {
+            slice(self)
+        }
     }
 }
 
@@ -747,50 +777,6 @@ impl ArrayChunked {
         };
         ca.set_fast_explode_list(!self.has_nulls());
         ca
-    }
-}
-
-impl<T> ChunkedArray<T>
-where
-    T: PolarsDataType,
-{
-    /// Should be used to match the chunk_id of another [`ChunkedArray`].
-    /// # Panics
-    /// It is the callers responsibility to ensure that this [`ChunkedArray`] has a single chunk.
-    pub fn match_chunks<I>(&self, chunk_id: I) -> Self
-    where
-        I: Iterator<Item = usize>,
-    {
-        debug_assert!(self.chunks.len() == 1);
-        // Takes a ChunkedArray containing a single chunk.
-        let slice = |ca: &Self| {
-            let array = &ca.chunks[0];
-
-            let mut offset = 0;
-            let chunks = chunk_id
-                .map(|len| {
-                    // SAFETY: within bounds.
-                    debug_assert!((offset + len) <= array.len());
-                    let out = unsafe { array.sliced_unchecked(offset, len) };
-                    offset += len;
-                    out
-                })
-                .collect();
-
-            debug_assert_eq!(offset, array.len());
-
-            // SAFETY: We just slice the original chunks, their type will not change.
-            unsafe {
-                Self::from_chunks_and_dtype(self.name().clone(), chunks, self.dtype().clone())
-            }
-        };
-
-        if self.chunks.len() != 1 {
-            let out = self.rechunk();
-            slice(&out)
-        } else {
-            slice(self)
-        }
     }
 }
 
