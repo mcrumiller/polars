@@ -576,14 +576,15 @@ pub trait SeriesTrait:
     ///
     /// If the [`Series`] is empty, a [`Scalar`] with a [`AnyValue::Null`] is returned.
     fn last(&self) -> Scalar {
-        let n = self.len();
-        let av = if n == 0 {
+        let dt = self.dtype();
+        let av = if self.len() == 0 {
             AnyValue::Null
         } else {
             // SAFETY: len-1 < len if len != 0
-            unsafe { self.get_unchecked(n - 1) }.into_static()
+            unsafe { self.get_unchecked(self.len() - 1) }.into_static()
         };
-        Scalar::new(self.dtype().clone(), av)
+
+        Scalar::new(dt.clone(), av)
     }
 
     /// Get the last non-null element of the [`Series`] as a [`Scalar`]

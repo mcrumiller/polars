@@ -2,7 +2,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use polars_core::utils::av_buffer::AnyValueBufferTrusted;
+use polars_core::frame::row::AnyValueBufferTrusted;
 use polars_core::with_match_physical_numeric_polars_type;
 
 use super::*;

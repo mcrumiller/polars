@@ -59,6 +59,7 @@ impl TimeUnit {
     }
 }
 
+#[cfg(any(feature = "rows", feature = "object"))]
 #[cfg(any(feature = "dtype-datetime", feature = "dtype-duration"))]
 #[inline]
 pub fn convert_time_units<T>(v: T, tu_l: TimeUnit, tu_r: TimeUnit) -> T

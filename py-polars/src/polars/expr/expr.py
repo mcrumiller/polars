@@ -3440,16 +3440,16 @@ class Expr:
 
         Examples
         --------
-        >>> df = pl.DataFrame({"a": [None, 1, 2]})
+        >>> df = pl.DataFrame({"a": [1, 1, 2]})
         >>> df.select(pl.col("a").first())
         shape: (1, 1)
-        ┌──────┐
-        │ a    │
-        │ ---  │
-        │ i64  │
-        ╞══════╡
-        │ null │
-        └──────┘
+        ┌─────┐
+        │ a   │
+        │ --- │
+        │ i64 │
+        ╞═════╡
+        │ 1   │
+        └─────┘
         """
         return wrap_expr(self._pyexpr.first())
 

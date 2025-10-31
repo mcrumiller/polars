@@ -47,8 +47,7 @@ impl GroupedReduction for AnyIgnoreNullGroupedReduction {
         assert!(values.dtype() == &DataType::Boolean);
         let values = values.as_materialized_series_maintain_scalar();
         let ca: &BooleanChunked = values.as_ref().as_ref();
-        // SAFETY: group_idx is valid.
-        if !unsafe { self.values.get_unchecked(group_idx as usize) } && ca.any() {
+        if ca.any() {
             self.values.set(group_idx as usize, true);
         }
         Ok(())
@@ -246,8 +245,7 @@ impl GroupedReduction for AnyKleeneNullGroupedReduction {
         assert!(values.dtype() == &DataType::Boolean);
         let values = values.as_materialized_series_maintain_scalar();
         let ca: &BooleanChunked = values.as_ref().as_ref();
-        // SAFETY: group_idx is valid.
-        if !unsafe { self.seen_true.get_unchecked(group_idx as usize) } && ca.any() {
+        if ca.any() {
             self.seen_true.set(group_idx as usize, true);
         }
         if ca.has_nulls() {
