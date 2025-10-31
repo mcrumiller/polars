@@ -492,7 +492,10 @@ impl<T: PolarsDataType> ChunkedArray<T> {
 
     #[inline]
     pub fn first(&self) -> Option<T::Physical<'_>> {
-        unsafe { self.get_unchecked(0) }
+        unsafe {
+            let arr = self.downcast_get_unchecked(0);
+            arr.get_unchecked(0)
+        }
     }
 
     /// Get the index of the first non null value in this [`ChunkedArray`].
@@ -525,9 +528,11 @@ impl<T: PolarsDataType> ChunkedArray<T> {
         }
     }
 
-    #[inline]
     pub fn last(&self) -> Option<T::Physical<'_>> {
-        unsafe { self.get_unchecked(self.len() - 1) }
+        unsafe {
+            let arr = self.downcast_get_unchecked(self.chunks.len().checked_sub(1)?);
+            arr.get_unchecked(arr.len().checked_sub(1)?)
+        }
     }
 
     /// Get the index of the last non null value in this [`ChunkedArray`].
