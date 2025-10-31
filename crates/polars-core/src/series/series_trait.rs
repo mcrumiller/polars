@@ -549,12 +549,10 @@ pub trait SeriesTrait:
     ///
     /// If the [`Series`] is empty, a [`Scalar`] with a [`AnyValue::Null`] is returned.
     fn first(&self) -> Scalar {
-        let av = if self.len() == 0 {
-            AnyValue::Null
-        } else {
-            self.get(0).map_or(AnyValue::Null, AnyValue::into_static)
-        };
-        Scalar::new(self.dtype().clone(), av)
+        let dt = self.dtype();
+        let av = self.get(0).map_or(AnyValue::Null, AnyValue::into_static);
+
+        Scalar::new(dt.clone(), av)
     }
 
     /// Get the first non-null element of the [`Series`] as a [`Scalar`]

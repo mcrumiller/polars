@@ -115,20 +115,22 @@ impl PhysicalExpr for AggregationExpr {
             },
             GroupByMethod::Median => s.median_reduce().map(|sc| sc.into_column(s.name().clone())),
             GroupByMethod::Mean => s.mean_reduce().map(|sc| sc.into_column(s.name().clone())),
-            GroupByMethod::First => Ok(s
-                .as_materialized_series()
-                .first()
-                .into_column(s.name().clone())),
+            GroupByMethod::First => Ok(if s.is_empty() {
+                Column::full_null(s.name().clone(), 1, s.dtype())
+            } else {
+                s.head(Some(1))
+            }),
             GroupByMethod::FirstNonNull => Ok(s
-                .as_materialized_series()
+                .as_materialized_series_maintain_scalar()
                 .first_non_null()
                 .into_column(s.name().clone())),
-            GroupByMethod::Last => Ok(s
-                .as_materialized_series()
-                .last()
-                .into_column(s.name().clone())),
+            GroupByMethod::Last => Ok(if s.is_empty() {
+                Column::full_null(s.name().clone(), 1, s.dtype())
+            } else {
+                s.tail(Some(1))
+            }),
             GroupByMethod::LastNonNull => Ok(s
-                .as_materialized_series()
+                .as_materialized_series_maintain_scalar()
                 .last_non_null()
                 .into_column(s.name().clone())),
             GroupByMethod::Item { allow_empty } => Ok(match s.len() {
