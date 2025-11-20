@@ -368,6 +368,9 @@ impl PhysicalExpr for SortByExpr {
             };
 
             let sort_by_s = sort_by_s.pop().unwrap();
+            if sort_by_s.is_empty() {
+                return Ok(ac_sort_by);
+            }
             let groups = ac_sort_by.groups();
 
             let (check, groups) = POOL.join(
