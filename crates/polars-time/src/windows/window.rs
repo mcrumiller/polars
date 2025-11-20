@@ -346,19 +346,41 @@ impl Iterator for BoundsIter<'_> {
         if self.bi.start < self.boundary.stop {
             let out = self.bi;
             match self.tu {
-                // TODO: find some way to propagate error instead of unwrapping?
-                // Issue is that `next` needs to return `Option`.
                 TimeUnit::Nanoseconds => {
-                    self.bi.start = self.window.every.add_ns(self.bi.start, self.tz).unwrap();
-                    self.bi.stop = self.window.period.add_ns(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = self.window.every.add_ns(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = self.window.period.add_ns(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
                 TimeUnit::Microseconds => {
-                    self.bi.start = self.window.every.add_us(self.bi.start, self.tz).unwrap();
-                    self.bi.stop = self.window.period.add_us(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = self.window.every.add_us(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = self.window.period.add_us(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
                 TimeUnit::Milliseconds => {
-                    self.bi.start = self.window.every.add_ms(self.bi.start, self.tz).unwrap();
-                    self.bi.stop = self.window.period.add_ms(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = self.window.every.add_ms(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = self.window.period.add_ms(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
             }
             Some(out)
@@ -372,22 +394,40 @@ impl Iterator for BoundsIter<'_> {
         if self.bi.start < self.boundary.stop {
             match self.tu {
                 TimeUnit::Nanoseconds => {
-                    self.bi.start = (self.window.every * n)
-                        .add_ns(self.bi.start, self.tz)
-                        .unwrap();
-                    self.bi.stop = (self.window.period).add_ns(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = (self.window.every * n).add_ns(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = (self.window.period).add_ns(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
                 TimeUnit::Microseconds => {
-                    self.bi.start = (self.window.every * n)
-                        .add_us(self.bi.start, self.tz)
-                        .unwrap();
-                    self.bi.stop = (self.window.period).add_us(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = (self.window.every * n).add_us(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = (self.window.period).add_us(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
                 TimeUnit::Milliseconds => {
-                    self.bi.start = (self.window.every * n)
-                        .add_ms(self.bi.start, self.tz)
-                        .unwrap();
-                    self.bi.stop = (self.window.period).add_ms(self.bi.start, self.tz).unwrap();
+                    if let Ok(s) = (self.window.every * n).add_ms(self.bi.start, self.tz) {
+                        self.bi.start = s
+                    } else {
+                        return None;
+                    };
+                    if let Ok(s) = (self.window.period).add_ms(self.bi.start, self.tz) {
+                        self.bi.stop = s
+                    } else {
+                        return None;
+                    };
                 },
             }
             self.next()

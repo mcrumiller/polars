@@ -1407,3 +1407,50 @@ def test_group_by_dynamic_large_offset(closed: ClosedInterval) -> None:
                     large, every, period, offset, closed
                 )
                 assert n_out == n_expected
+
+
+def test_group_by_dynamic_daylight_savings_invalid_time_25410() -> None:
+    tz = "America/New_York"
+    df = pl.DataFrame(
+        {
+            "timestamp": pl.datetime_range(
+                datetime(2024, 3, 9),
+                datetime(2024, 3, 11),
+                time_zone=tz,
+                eager=True,
+                interval="1m",
+            )
+        }
+    ).join(pl.DataFrame({"id": [1, 2, 3]}), how="cross")
+
+    result = df.group_by_dynamic(
+        "timestamp",
+        every="1m",
+        period=timedelta(days=1),
+        closed="both",
+        label="left",
+        group_by="id",
+    ).agg(ts_last=pl.col("timestamp").last())
+
+    timestamp = pl.datetime_range(
+        datetime(2024, 3, 9),
+        datetime(2024, 3, 9, 1, 58),
+        time_zone=tz,
+        interval="1m",
+        eager=True,
+    )
+    ts_last = pl.datetime_range(
+        datetime(2024, 3, 10),
+        datetime(2024, 3, 10, 1, 58),
+        time_zone=tz,
+        interval="1m",
+        eager=True,
+    )
+    expected = pl.DataFrame(
+        {
+            "id": [*[1] * 119, *[2] * 119, *[3] * 119],
+            "timestamp": [*timestamp, *timestamp, *timestamp],
+            "ts_last": [*ts_last, *ts_last, *ts_last],
+        }
+    )
+    assert_frame_equal(result, expected)
